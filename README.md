@@ -10,7 +10,8 @@ This project comes packed with features designed for a robust and intelligent ag
 *   ✅ **Persistent Memory**: An active **Session Note Tool** ensures the agent retains key information across multiple sessions.
 *   ✅ **Intelligent Context Management**: Automatically summarizes conversation history to handle contexts up to a configurable token limit, enabling infinitely long tasks.
 *   ✅ **Claude Skills Integration**: Comes with 15 professional skills for documents, design, testing, and development.
-*   ✅ **MCP Tool Integration**: Natively supports MCP for tools like knowledge graph access and web search.
+*   ✅ **Built-in Web Search**: Native Baidu search tool optimized for Chinese networks, no API key required, no configuration needed out of the box.
+*   ✅ **MCP Tool Integration**: Natively supports MCP for tools like knowledge graph access and extended web search sources.
 *   ✅ **Comprehensive Logging**: Detailed logs for every request, response, and tool execution for easy debugging.
 *   ✅ **Clean & Simple Design**: A beautiful CLI and a codebase that is easy to understand, making it the perfect starting point for building advanced agents.
 
@@ -27,7 +28,7 @@ This project comes packed with features designed for a robust and intelligent ag
   - [Usage Examples](#usage-examples)
     - [Task Execution](#task-execution)
     - [Using a Claude Skill (e.g., PDF Generation)](#using-a-claude-skill-eg-pdf-generation)
-    - [Web Search \& Summarization (MCP Tool)](#web-search--summarization-mcp-tool)
+    - [Web Search \& Summarization](#web-search--summarization)
   - [Testing](#testing)
     - [Quick Run](#quick-run)
     - [Test Coverage](#test-coverage)
@@ -156,7 +157,7 @@ uv sync
 # Alternative: Install dependencies manually (if not using uv)
 # pip install -r requirements.txt
 # Or install required packages:
-# pip install tiktoken pyyaml httpx pydantic requests prompt-toolkit mcp
+# pip install tiktoken pyyaml httpx pydantic requests prompt-toolkit mcp beautifulsoup4
 
 # 4. Initialize Claude Skills (Optional)
 git submodule update --init --recursive
@@ -253,9 +254,9 @@ Here are a few examples of what Mini Agent can do.
 
 ![Demo GIF 2: Claude Skill Usage](docs/assets/demo2-claude-skill.gif "Claude Skill Usage Demo")
 
-### Web Search & Summarization (MCP Tool)
+### Web Search & Summarization
 
-*This demo shows the agent using its web search tool to find up-to-date information online and summarize it for the user.*
+*This demo shows the agent using its built-in Baidu web search tool to find up-to-date information online and summarize it for the user. No MCP configuration required, works out of the box for Chinese users.*
 
 ![Demo GIF 3: Web Search](docs/assets/demo3-web-search.gif "Web Search Demo")
 
@@ -271,6 +272,9 @@ pytest tests/ -v
 
 # Run core functionality tests
 pytest tests/test_agent.py tests/test_note_tool.py -v
+
+# Run web search functionality test
+pytest tests/test_web_search.py -v
 ```
 
 ### Test Coverage

@@ -10,7 +10,8 @@
 *   ✅ **持久化记忆**：通过内置的 **Session Note Tool**，Agent 能够在多个会话中保留关键信息。
 *   ✅ **智能上下文管理**：自动对会话历史进行摘要，可处理长达可配置 Token 上限的上下文，从而支持无限长的任务。
 *   ✅ **集成 Claude Skills**：内置 15 种专业技能，涵盖文档处理、设计、测试和开发等领域。
-*   ✅ **集成 MCP 工具**：原生支持 MCP 协议，可轻松接入知识图谱、网页搜索等工具。
+*   ✅ **内置网页搜索**：原生支持百度搜索工具，针对中文网络优化，无需API Key，开箱即用。
+*   ✅ **集成 MCP 工具**：原生支持 MCP 协议，可轻松接入知识图谱、扩展网页搜索源等工具。
 *   ✅ **全面的日志记录**：为每个请求、响应和工具执行提供详细日志，便于调试。
 *   ✅ **简洁明了的设计**：美观的命令行界面和易于理解的代码库，使其成为构建高级 Agent 的理想起点。
 
@@ -27,7 +28,7 @@
   - [使用示例](#使用示例)
     - [任务执行](#任务执行)
     - [使用 Claude Skill（例如：PDF 生成）](#使用-claude-skill例如pdf-生成)
-    - [网页搜索与摘要（MCP 工具）](#网页搜索与摘要mcp-工具)
+    - [网页搜索与摘要](#网页搜索与摘要)
   - [测试](#测试)
     - [快速运行](#快速运行)
     - [测试覆盖范围](#测试覆盖范围)
@@ -156,7 +157,7 @@ uv sync
 # 替代方案: 手动安装依赖（如果不使用 uv）
 # pip install -r requirements.txt
 # 或者安装必需的包:
-# pip install tiktoken pyyaml httpx pydantic requests prompt-toolkit mcp
+# pip install tiktoken pyyaml httpx pydantic requests prompt-toolkit mcp beautifulsoup4
 
 # 4. 初始化 Claude Skills（可选）
 git submodule update --init --recursive
@@ -253,9 +254,9 @@ Mini Agent 支持 [Agent Communication Protocol (ACP)](https://github.com/modelc
 
 ![演示动图 2: Claude Skill 使用](docs/assets/demo2-claude-skill.gif "Claude Skill 使用演示")
 
-### 网页搜索与摘要（MCP 工具）
+### 网页搜索与摘要
 
-*此演示展示了 Agent 如何使用其网页搜索工具在线查找最新信息，并为用户进行总结。*
+*此演示展示了 Agent 如何使用内置的百度网页搜索工具在线查找最新信息，并为用户进行总结。无需配置MCP，中文用户开箱即用。*
 
 ![演示动图 3: 网页搜索](docs/assets/demo3-web-search.gif "网页搜索演示")
 
@@ -272,6 +273,9 @@ pytest tests/ -v
 
 # 仅运行核心功能测试
 pytest tests/test_agent.py tests/test_note_tool.py -v
+
+# 运行网页搜索功能测试
+pytest tests/test_web_search.py -v
 ```
 
 ### 测试覆盖范围
