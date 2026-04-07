@@ -53,6 +53,7 @@ class Agent:
         max_steps: int = 50,
         workspace_dir: str = "./workspace",
         token_limit: int = 80000,  # Summary triggered when tokens exceed this value
+        stream: bool = False,
     ):
         self.llm = llm_client
         self.tools = {tool.name: tool for tool in tools}
@@ -82,6 +83,8 @@ class Agent:
         self.api_total_tokens: int = 0
         # Flag to skip token check right after summary (avoid consecutive triggers)
         self._skip_next_token_check: bool = False
+        # Streaming mode: print LLM output incrementally as chunks arrive
+        self.stream: bool = stream
 
     def add_user_message(self, content: str):
         """Add a user message to history."""
@@ -318,7 +321,62 @@ Requirements:
             # Use simple text summary on failure
             return summary_content
 
-    async def run(self, cancel_event: Optional[asyncio.Event] = None) -> str:
+    async def _stream_response(self, messages: list, tools: list) -> "LLMResponse":
+        """Stream LLM response and print chunks as they arrive.
+
+        Args:
+            messages: Current message history
+            tools: Available tools
+
+        Returns:
+            Accumulated LLMResponse after streaming completes
+        """
+        from .schema import LLMResponse, ToolCall
+
+        accumulated_content = ""
+        accumulated_thinking = ""
+        accumulated_tool_calls: list[ToolCall] = []
+        finish_reason = ""
+
+        # Print header
+        print(f"\n{Colors.BOLD}{Colors.BRIGHT_BLUE}🤖 Assistant:{Colors.RESET}")
+
+        first_thinking = True
+        async for chunk in self.llm.generate_stream(messages=messages, tools=tools):
+            # Print thinking if present and new
+            if chunk.thinking and chunk.thinking != accumulated_thinking:
+                new_thinking = chunk.thinking[len(accumulated_thinking):]
+                if new_thinking:
+                    if first_thinking:
+                        print(f"\n{Colors.BOLD}{Colors.MAGENTA}🧠 Thinking:{Colors.RESET}")
+                        first_thinking = False
+                    print(f"{Colors.DIM}{new_thinking}{Colors.RESET}", end="", flush=True)
+                accumulated_thinking = chunk.thinking
+
+            # Print text content incrementally
+            if chunk.content and chunk.content != accumulated_content:
+                new_content = chunk.content[len(accumulated_content):]
+                if new_content:
+                    print(new_content, end="", flush=True)
+                accumulated_content = chunk.content
+
+            # Accumulate tool calls
+            if chunk.tool_calls:
+                accumulated_tool_calls = chunk.tool_calls
+
+            if chunk.finish_reason:
+                finish_reason = chunk.finish_reason
+
+        print()  # newline after streaming completes
+
+        return LLMResponse(
+            content=accumulated_content,
+            thinking=accumulated_thinking if accumulated_thinking else None,
+            tool_calls=accumulated_tool_calls if accumulated_tool_calls else None,
+            finish_reason=finish_reason,
+        )
+
+    async def run(self, cancel_event: Optional[asyncio.Event] = None, stream: bool = False) -> str:
         """Execute agent loop until task is complete or max steps reached.
 
         Args:
@@ -369,7 +427,10 @@ Requirements:
             self.logger.log_request(messages=self.messages, tools=tool_list)
 
             try:
-                response = await self.llm.generate(messages=self.messages, tools=tool_list)
+                if stream or self.stream:
+                    response = await self._stream_response(messages=self.messages, tools=tool_list)
+                else:
+                    response = await self.llm.generate(messages=self.messages, tools=tool_list)
             except Exception as e:
                 # Check if it's a retry exhausted error
                 from .retry import RetryExhaustedError
@@ -404,14 +465,15 @@ Requirements:
             self.messages.append(assistant_msg)
 
             # Print thinking if present
-            if response.thinking:
-                print(f"\n{Colors.BOLD}{Colors.MAGENTA}🧠 Thinking:{Colors.RESET}")
-                print(f"{Colors.DIM}{response.thinking}{Colors.RESET}")
+            if not (stream or self.stream):
+                if response.thinking:
+                    print(f"\n{Colors.BOLD}{Colors.MAGENTA}🧠 Thinking:{Colors.RESET}")
+                    print(f"{Colors.DIM}{response.thinking}{Colors.RESET}")
 
-            # Print assistant response
-            if response.content:
-                print(f"\n{Colors.BOLD}{Colors.BRIGHT_BLUE}🤖 Assistant:{Colors.RESET}")
-                print(f"{response.content}")
+                # Print assistant response
+                if response.content:
+                    print(f"\n{Colors.BOLD}{Colors.BRIGHT_BLUE}🤖 Assistant:{Colors.RESET}")
+                    print(f"{response.content}")
 
             # Check if task is complete (no tool calls)
             if not response.tool_calls:

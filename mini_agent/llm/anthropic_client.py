@@ -1,5 +1,6 @@
 """Anthropic LLM client implementation."""
 
+import json
 import logging
 from typing import Any
 
@@ -291,3 +292,99 @@ class AnthropicClient(LLMClientBase):
 
         # Parse and return response
         return self._parse_response(response)
+
+    async def generate_stream(
+        self,
+        messages: list[Message],
+        tools: list[Any] | None = None,
+    ):
+        """Generate streaming response from Anthropic LLM.
+
+        Args:
+            messages: List of conversation messages
+            tools: Optional list of available tools
+
+        Yields:
+            LLMResponse with incremental content
+        """
+        system_message, api_messages = self._convert_messages(messages)
+
+        params = {
+            "model": self.model,
+            "max_tokens": 16384,
+            "messages": api_messages,
+            "stream": True,
+        }
+
+        if system_message:
+            params["system"] = system_message
+
+        if tools:
+            params["tools"] = self._convert_tools(tools)
+
+        accumulated_content = ""
+        accumulated_thinking = ""
+        accumulated_tool_calls: list = []
+        tool_call_buffer: dict | None = None
+        finish_reason = ""
+
+        async with self.client.messages.stream(**params) as stream:
+            async for chunk in stream:
+                delta = getattr(chunk, "delta", None)
+
+                if delta:
+                    # Text delta
+                    if hasattr(delta, "text") and delta.text:
+                        accumulated_content += delta.text
+                        yield LLMResponse(
+                            content=accumulated_content,
+                            thinking=accumulated_thinking if accumulated_thinking else None,
+                            finish_reason="",
+                        )
+                    # Thinking delta
+                    elif hasattr(delta, "thinking") and delta.thinking:
+                        accumulated_thinking += delta.thinking
+                    # Tool use start
+                    elif hasattr(delta, "name") and delta.name:
+                        tool_call_buffer = {
+                            "id": getattr(delta, "id", ""),
+                            "name": delta.name,
+                            "input": "",
+                        }
+                    # Tool input delta
+                    elif hasattr(delta, "input_json_delta") and delta.input_json_delta:
+                        if tool_call_buffer:
+                            tool_call_buffer["input"] += delta.input_json_delta
+
+                # Content block complete event
+                content_block = getattr(chunk, "content_block", None)
+                if content_block and content_block.type == "tool_use":
+                    if tool_call_buffer:
+                        try:
+                            arguments = json.loads(tool_call_buffer["input"]) if tool_call_buffer["input"] else {}
+                        except json.JSONDecodeError:
+                            arguments = {}
+                        accumulated_tool_calls.append(
+                            ToolCall(
+                                id=tool_call_buffer["id"],
+                                type="function",
+                                function=FunctionCall(
+                                    name=tool_call_buffer["name"],
+                                    arguments=arguments,
+                                ),
+                            )
+                        )
+                        tool_call_buffer = None
+
+                # Message delta (e.g. stop reason)
+                if hasattr(chunk, "type") and chunk.type == "message_delta":
+                    delta_obj = getattr(chunk, "delta", None)
+                    if delta_obj and hasattr(delta_obj, "stop_reason"):
+                        finish_reason = delta_obj.stop_reason
+
+                yield LLMResponse(
+                    content=accumulated_content,
+                    thinking=accumulated_thinking if accumulated_thinking else None,
+                    tool_calls=list(accumulated_tool_calls) if accumulated_tool_calls else None,
+                    finish_reason=finish_reason,
+                )

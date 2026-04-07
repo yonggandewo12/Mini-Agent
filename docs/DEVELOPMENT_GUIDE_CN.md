@@ -7,6 +7,7 @@
   - [目录](#目录)
   - [1. 项目架构](#1-项目架构)
   - [2. 基础使用](#2-基础使用)
+    - [2.0 流式输出模式](#20-流式输出模式)
     - [2.1 交互式命令](#21-交互式命令)
     - [2.2 已集成的 MCP 工具](#22-已集成的-mcp-工具)
       - [Memory - 知识图谱记忆系统](#memory---知识图谱记忆系统)
@@ -51,6 +52,73 @@ mini-agent/
 ```
 
 ## 2. 基础使用
+
+### 2.0 流式输出模式
+
+Mini Agent 支持**实时流式输出**，在 AI 生成响应的同时即时显示，提供更快的反馈和更交互式的体验。
+
+#### 命令行参数
+
+| 参数 | 说明 |
+|------|------|
+| `--stream` 或 `-s` | 启用流式输出模式 |
+| `--task` 或 `-t` | 非交互式执行任务 |
+
+#### 使用示例
+
+```bash
+# 交互模式开启流式输出（实时反馈）
+mini-agent --stream
+mini-agent -s
+
+# 非交互模式开启流式输出
+mini-agent --stream --task "创建一个 Python 脚本"
+mini-agent -s -t "创建一个 Python 脚本"
+
+# 默认模式（非流式，等待完整响应）
+mini-agent
+mini-agent --task "创建一个 Python 脚本"
+```
+
+#### 流式输出工作原理
+
+启用流式输出后：
+
+1. **实时显示 Token**：AI 响应在生成时立即显示
+2. **思考过程**：模型的推理/思考过程实时显示（如模型支持）
+3. **工具调用**：工具执行结果在流式完成后显示
+4. **功能一致**：所有功能与非流式模式完全相同
+
+#### 实现细节
+
+流式功能跨多个文件实现：
+
+| 文件 | 职责 |
+|------|------|
+| `mini_agent/cli.py` | 解析 `--stream` 参数并传递给 Agent |
+| `mini_agent/llm/base.py` | 基类 LLM 客户端的抽象 `generate_stream()` 方法 |
+| `mini_agent/llm/openai_client.py` | OpenAI 兼容流式实现 |
+| `mini_agent/llm/anthropic_client.py` | Anthropic SDK 流式实现 |
+| `mini_agent/agent.py` | `_stream_response()` 方法处理流式输出 |
+
+#### 程序化使用
+
+您也可以在代码中程序化使用流式功能：
+
+```python
+from mini_agent.agent import Agent
+
+# 创建启用流式的 Agent
+agent = Agent(
+    llm_client=llm_client,
+    system_prompt=system_prompt,
+    tools=tools,
+    stream=True  # 启用流式输出
+)
+
+# 或者传递 stream 参数给 run()
+await agent.run(stream=True)
+```
 
 ### 2.1 交互式命令
 

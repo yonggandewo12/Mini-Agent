@@ -125,3 +125,20 @@ class LLMClient:
             LLMResponse containing the generated content
         """
         return await self._client.generate(messages, tools)
+
+    async def generate_stream(
+        self,
+        messages: list[Message],
+        tools: list | None = None,
+    ):
+        """Generate streaming response from LLM.
+
+        Args:
+            messages: List of conversation messages
+            tools: Optional list of Tool objects or dicts
+
+        Yields:
+            LLMResponse with incremental content
+        """
+        async for chunk in self._client.generate_stream(messages, tools):
+            yield chunk

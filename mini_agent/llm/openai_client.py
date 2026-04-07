@@ -293,3 +293,95 @@ class OpenAIClient(LLMClientBase):
 
         # Parse and return response
         return self._parse_response(response)
+
+    async def generate_stream(
+        self,
+        messages: list[Message],
+        tools: list[Any] | None = None,
+    ):
+        """Generate streaming response from OpenAI LLM.
+
+        Args:
+            messages: List of conversation messages
+            tools: Optional list of available tools
+
+        Yields:
+            LLMResponse with incremental content
+        """
+        _, api_messages = self._convert_messages(messages)
+
+        params = {
+            "model": self.model,
+            "messages": api_messages,
+            "stream": True,
+            "extra_body": {"reasoning_split": True},
+        }
+
+        if tools:
+            params["tools"] = self._convert_tools(tools)
+
+        accumulated_content = ""
+        accumulated_thinking = ""
+        accumulated_tool_calls: list = []
+        tool_call_buffer: dict | None = None
+        finish_reason = ""
+
+        # Note: stream=True returns an async generator, not an async context manager
+        stream_response = await self.client.chat.completions.create(**params)
+        async for chunk in stream_response:
+                delta = chunk.choices[0].delta
+                if not delta:
+                    continue
+
+                # Handle content
+                if delta.content:
+                    accumulated_content += delta.content
+
+                # Handle thinking/reasoning
+                if hasattr(delta, "reasoning_details") and delta.reasoning_details:
+                    for detail in delta.reasoning_details:
+                        if hasattr(detail, "text"):
+                            accumulated_thinking += detail.text
+
+                # Handle tool calls incrementally
+                final_tool_calls = None
+                if delta.tool_calls:
+                    for tc_delta in delta.tool_calls:
+                        if tc_delta.id:
+                            tool_call_buffer = {
+                                "id": tc_delta.id,
+                                "function": {"name": tc_delta.function.name if tc_delta.function else "", "arguments": ""},
+                            }
+                        if tool_call_buffer and tc_delta.function:
+                            if tc_delta.function.name:
+                                tool_call_buffer["function"]["name"] = tc_delta.function.name
+                            if tc_delta.function.arguments:
+                                tool_call_buffer["function"]["arguments"] += tc_delta.function.arguments
+
+                            # Try to parse arguments; if complete JSON, emit the tool call
+                            try:
+                                json.loads(tool_call_buffer["function"]["arguments"])
+                                accumulated_tool_calls.append(
+                                    ToolCall(
+                                        id=tool_call_buffer["id"],
+                                        type="function",
+                                        function=FunctionCall(
+                                            name=tool_call_buffer["function"]["name"],
+                                            arguments=json.loads(tool_call_buffer["function"]["arguments"]),
+                                        ),
+                                    )
+                                )
+                                tool_call_buffer = None
+                                final_tool_calls = list(accumulated_tool_calls)
+                            except json.JSONDecodeError:
+                                pass
+
+                if hasattr(chunk.choices[0], "finish_reason") and chunk.choices[0].finish_reason:
+                    finish_reason = chunk.choices[0].finish_reason
+
+                yield LLMResponse(
+                    content=accumulated_content,
+                    thinking=accumulated_thinking if accumulated_thinking else None,
+                    tool_calls=final_tool_calls,
+                    finish_reason=finish_reason,
+                )

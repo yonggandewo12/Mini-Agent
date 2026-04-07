@@ -6,7 +6,7 @@ English | [中文](./README_CN.md)
 
 This project comes packed with features designed for a robust and intelligent agent development experience:
 
-*   ✅ **Full Agent Execution Loop**: A complete and reliable foundation with a basic toolset for file system and shell operations.
+*   ✅ **Streaming Output Support**: Real-time streaming display of AI responses for faster feedback, with optional `--stream` flag to toggle between streaming and non-streaming modes.
 *   ✅ **Persistent Memory**: An active **Session Note Tool** ensures the agent retains key information across multiple sessions.
 *   ✅ **Intelligent Context Management**: Automatically summarizes conversation history to handle contexts up to a configurable token limit, enabling infinitely long tasks.
 *   ✅ **Claude Skills Integration**: Comes with 15 professional skills for documents, design, testing, and development.
@@ -26,6 +26,7 @@ This project comes packed with features designed for a robust and intelligent ag
       - [🔧 Development Mode](#-development-mode)
   - [ACP \& Zed Editor Integration(optional)](#acp--zed-editor-integrationoptional)
   - [Usage Examples](#usage-examples)
+    - [Streaming Output Mode](#streaming-output-mode)
     - [Task Execution](#task-execution)
     - [Using a Claude Skill (e.g., PDF Generation)](#using-a-claude-skill-eg-pdf-generation)
     - [Web Search \& Summarization](#web-search--summarization)
@@ -241,6 +242,38 @@ The command path should be:
 ## Usage Examples
 
 Here are a few examples of what Mini Agent can do.
+
+### Streaming Output Mode
+
+Mini Agent supports **real-time streaming output** that displays AI responses as they are generated, providing faster feedback and a more interactive experience.
+
+**Usage:**
+
+```bash
+# Interactive mode with streaming output (recommended for real-time feedback)
+mini-agent --stream
+mini-agent -s
+
+# Non-interactive mode with streaming
+mini-agent --stream --task "Your task here"
+mini-agent -s -t "Your task here"
+
+# Default mode (non-streaming, waits for complete response)
+mini-agent
+```
+
+**How it works:**
+
+| Mode | Flag | Behavior | Best For |
+|------|------|----------|----------|
+| **Streaming** | `--stream` or `-s` | AI response displays in real-time as tokens arrive | Interactive conversations, long responses |
+| **Non-streaming** | (default) | Waits for complete response before displaying | Scripted tasks, quiet environments |
+
+**Key features of streaming mode:**
+- Real-time display of AI thinking process (if enabled by model)
+- Incremental text output as tokens are generated
+- Tool call results displayed after streaming completes
+- Same functionality as non-streaming mode, just faster perceived response
 
 ### Task Execution
 

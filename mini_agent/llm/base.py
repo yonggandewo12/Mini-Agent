@@ -82,3 +82,20 @@ class LLMClientBase(ABC):
             Tuple of (system_message, api_messages)
         """
         pass
+
+    @abstractmethod
+    async def generate_stream(
+        self,
+        messages: list[Message],
+        tools: list[Any] | None = None,
+    ):
+        """Generate streaming response from LLM.
+
+        Args:
+            messages: List of conversation messages
+            tools: Optional list of available tools
+
+        Yields:
+            LLMResponse with incremental content
+        """
+        pass

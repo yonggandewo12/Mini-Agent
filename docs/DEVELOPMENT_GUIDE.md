@@ -6,6 +6,7 @@
   - [Table of Contents](#table-of-contents)
   - [1. Project Architecture](#1-project-architecture)
   - [2. Basic Usage](#2-basic-usage)
+    - [2.0 Streaming Output Mode](#20-streaming-output-mode)
     - [2.1 Interactive Commands](#21-interactive-commands)
     - [2.2 Integrated MCP Tools](#22-integrated-mcp-tools)
       - [Memory - Knowledge Graph Memory System](#memory---knowledge-graph-memory-system)
@@ -50,6 +51,73 @@ mini-agent/
 ```
 
 ## 2. Basic Usage
+
+### 2.0 Streaming Output Mode
+
+Mini Agent supports **real-time streaming output** that displays AI responses as they are generated. This provides a faster, more interactive experience especially for long responses.
+
+#### Command Line Options
+
+| Flag | Description |
+|------|-------------|
+| `--stream` or `-s` | Enable streaming output mode |
+| `--task` or `-t` | Execute a task non-interactively |
+
+#### Usage Examples
+
+```bash
+# Interactive mode with streaming (real-time feedback)
+mini-agent --stream
+mini-agent -s
+
+# Non-interactive task execution with streaming
+mini-agent --stream --task "Create a Python script"
+mini-agent -s -t "Create a Python script"
+
+# Default mode (non-streaming, waits for complete response)
+mini-agent
+mini-agent --task "Create a Python script"
+```
+
+#### How Streaming Works
+
+When streaming is enabled:
+
+1. **Real-time token display**: AI response tokens appear immediately as they are generated
+2. **Thinking process**: The model's reasoning/thinking is displayed in real-time (if enabled by the model)
+3. **Tool calls**: Tool execution results are displayed after the streaming completes
+4. **Same functionality**: All features work identically to non-streaming mode
+
+#### Implementation Details
+
+The streaming feature is implemented across several files:
+
+| File | Role |
+|------|------|
+| `mini_agent/cli.py` | Parses `--stream` flag and passes to Agent |
+| `mini_agent/llm/base.py` | Abstract `generate_stream()` method in base LLM client |
+| `mini_agent/llm/openai_client.py` | OpenAI-compatible streaming implementation |
+| `mini_agent/llm/anthropic_client.py` | Anthropic SDK streaming implementation |
+| `mini_agent/agent.py` | `_stream_response()` method for streaming output |
+
+#### Programmatic Usage
+
+You can also use streaming programmatically in your own code:
+
+```python
+from mini_agent.agent import Agent
+
+# Create agent with streaming enabled
+agent = Agent(
+    llm_client=llm_client,
+    system_prompt=system_prompt,
+    tools=tools,
+    stream=True  # Enable streaming
+)
+
+# Or pass stream parameter to run()
+await agent.run(stream=True)
+```
 
 ### 2.1 Interactive Commands
 

@@ -294,8 +294,12 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  mini-agent                              # Use current directory as workspace
+  mini-agent                              # Use current directory as workspace (non-streaming)
   mini-agent --workspace /path/to/dir     # Use specific workspace directory
+  mini-agent --stream                     # Interactive mode with streaming output
+  mini-agent -s                           # Short form for streaming mode
+  mini-agent --stream --task "Hello"      # Non-interactive task with streaming
+  mini-agent -s -t "Hello"                # Short form for streaming + task
   mini-agent log                          # Show log directory and recent files
   mini-agent log agent_run_xxx.log        # Read a specific log file
         """,
@@ -319,6 +323,13 @@ Examples:
         "-v",
         action="version",
         version="mini-agent 0.1.0",
+    )
+    parser.add_argument(
+        "--stream",
+        "-s",
+        action="store_true",
+        default=False,
+        help="Enable streaming output for faster response display",
     )
 
     # Subcommands
@@ -488,7 +499,7 @@ async def _quiet_cleanup():
         pass
 
 
-async def run_agent(workspace_dir: Path, task: str = None):
+async def run_agent(workspace_dir: Path, task: str = None, stream: bool = False):
     """Run Agent in interactive or non-interactive mode.
 
     Args:
@@ -624,7 +635,7 @@ async def run_agent(workspace_dir: Path, task: str = None):
         print(f"\n{Colors.BRIGHT_BLUE}Agent{Colors.RESET} {Colors.DIM}›{Colors.RESET} {Colors.DIM}Executing task...{Colors.RESET}\n")
         agent.add_user_message(task)
         try:
-            await agent.run()
+            await agent.run(stream=stream)
         except Exception as e:
             print(f"\n{Colors.RED}❌ Error: {e}{Colors.RESET}")
         finally:
@@ -812,7 +823,7 @@ async def run_agent(workspace_dir: Path, task: str = None):
 
             # Run agent with periodic cancellation check
             try:
-                agent_task = asyncio.create_task(agent.run())
+                agent_task = asyncio.create_task(agent.run(stream=stream))
 
                 # Poll for cancellation while agent runs
                 while not agent_task.done():
@@ -871,7 +882,7 @@ def main():
     workspace_dir.mkdir(parents=True, exist_ok=True)
 
     # Run the agent (config always loaded from package directory)
-    asyncio.run(run_agent(workspace_dir, task=args.task))
+    asyncio.run(run_agent(workspace_dir, task=args.task, stream=args.stream))
 
 
 if __name__ == "__main__":
