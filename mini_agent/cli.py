@@ -37,6 +37,7 @@ from mini_agent.tools.file_tools import EditTool, ReadTool, WriteTool
 from mini_agent.tools.mcp_loader import cleanup_mcp_connections, load_mcp_tools_async, set_mcp_timeout_config
 from mini_agent.tools.note_tool import SessionNoteTool
 from mini_agent.tools.skill_tool import create_skill_tools
+from mini_agent.tools.baidu_search_tool import BaiduSearchTool
 from mini_agent.utils import calculate_display_width
 
 
@@ -465,6 +466,10 @@ def add_workspace_tools(tools: List[Tool], config: Config, workspace_dir: Path):
     if config.tools.enable_note:
         tools.append(SessionNoteTool(memory_file=str(workspace_dir / ".agent_memory.json")))
         print(f"{Colors.GREEN}✅ Loaded session note tool{Colors.RESET}")
+
+    # Baidu search tool
+    tools.append(BaiduSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded Baidu search tool{Colors.RESET}")
 
 
 async def _quiet_cleanup():
