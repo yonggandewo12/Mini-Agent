@@ -37,7 +37,15 @@ from mini_agent.tools.file_tools import EditTool, ReadTool, WriteTool
 from mini_agent.tools.mcp_loader import cleanup_mcp_connections, load_mcp_tools_async, set_mcp_timeout_config
 from mini_agent.tools.note_tool import SessionNoteTool
 from mini_agent.tools.skill_tool import create_skill_tools
-from mini_agent.tools.baidu_search_tool import BaiduSearchTool
+from mini_agent.tools.search import (
+    BaiduSearchTool,
+    GeneralSearchTool,
+    AcademicSearchTool,
+    NewsSearchTool,
+    EcommerceSearchTool,
+    SocialSearchTool,
+    TechSearchTool,
+)
 from mini_agent.utils import calculate_display_width
 
 
@@ -481,6 +489,20 @@ def add_workspace_tools(tools: List[Tool], config: Config, workspace_dir: Path):
     # Baidu search tool
     tools.append(BaiduSearchTool())
     print(f"{Colors.GREEN}✅ Loaded Baidu search tool{Colors.RESET}")
+
+    # New search tools
+    tools.append(GeneralSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded General search tool{Colors.RESET}")
+    tools.append(AcademicSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded Academic search tool{Colors.RESET}")
+    tools.append(NewsSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded News search tool{Colors.RESET}")
+    tools.append(EcommerceSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded Ecommerce search tool{Colors.RESET}")
+    tools.append(SocialSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded Social search tool{Colors.RESET}")
+    tools.append(TechSearchTool())
+    print(f"{Colors.GREEN}✅ Loaded Tech search tool{Colors.RESET}")
 
 
 async def _quiet_cleanup():

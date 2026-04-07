@@ -4,7 +4,16 @@ from .base import Tool, ToolResult
 from .bash_tool import BashTool
 from .file_tools import EditTool, ReadTool, WriteTool
 from .note_tool import RecallNoteTool, SessionNoteTool
-from .baidu_search_tool import BaiduSearchTool
+from .search import (
+    BaseSearchTool,
+    BaiduSearchTool,
+    GeneralSearchTool,
+    AcademicSearchTool,
+    NewsSearchTool,
+    EcommerceSearchTool,
+    SocialSearchTool,
+    TechSearchTool,
+)
 
 __all__ = [
     "Tool",
@@ -16,4 +25,11 @@ __all__ = [
     "SessionNoteTool",
     "RecallNoteTool",
     "BaiduSearchTool",
+    "BaseSearchTool",
+    "GeneralSearchTool",
+    "AcademicSearchTool",
+    "NewsSearchTool",
+    "EcommerceSearchTool",
+    "SocialSearchTool",
+    "TechSearchTool",
 ]

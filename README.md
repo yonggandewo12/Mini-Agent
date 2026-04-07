@@ -10,7 +10,7 @@ This project comes packed with features designed for a robust and intelligent ag
 *   ✅ **Persistent Memory**: An active **Session Note Tool** ensures the agent retains key information across multiple sessions.
 *   ✅ **Intelligent Context Management**: Automatically summarizes conversation history to handle contexts up to a configurable token limit, enabling infinitely long tasks.
 *   ✅ **Claude Skills Integration**: Comes with 15 professional skills for documents, design, testing, and development.
-*   ✅ **Built-in Web Search**: Native Baidu search tool optimized for Chinese networks, no API key required, no configuration needed out of the box.
+*   ✅ **Built-in Web Search**: Multiple search tools including Baidu search (Chinese-optimized), General search, Academic search, News search, E-commerce search, Social media search, and Tech search. All support multi-engine fallback with no API key required.
 *   ✅ **MCP Tool Integration**: Natively supports MCP for tools like knowledge graph access and extended web search sources.
 *   ✅ **Comprehensive Logging**: Detailed logs for every request, response, and tool execution for easy debugging.
 *   ✅ **Clean & Simple Design**: A beautiful CLI and a codebase that is easy to understand, making it the perfect starting point for building advanced agents.

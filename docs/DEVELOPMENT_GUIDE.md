@@ -266,7 +266,99 @@ agent = Agent(
 )
 ```
 
-### 3.2 Adding MCP Tools
+### 3.2 Adding Search Tools
+
+The project includes a **search tools framework** in `mini_agent/tools/search/` that provides multiple specialized search tools with multi-engine fallback support.
+
+#### Available Search Tools
+
+| Tool | Purpose | Engine Chain |
+|------|---------|--------------|
+| `GeneralSearchTool` | General web search | Bing → 360 → Sogou → DuckDuckGo → **Baidu** |
+| `AcademicSearchTool` | Academic papers & research | Semantic Scholar → arXiv → **Baidu** |
+| `NewsSearchTool` | News articles | Bing → Google News RSS → DuckDuckGo → **Baidu** |
+| `EcommerceSearchTool` | Product search | Bing(Taobao) → Bing(JD) → Sogou → **Baidu** |
+| `SocialSearchTool` | Social media content | Bing(Weibo) → Bing(WeChat) → Sogou → **Baidu** |
+| `TechSearchTool` | Tech Q&A & code | Bing(StackOverflow) → Bing(GitHub) → Sogou → **Baidu** |
+
+> **Note:** Baidu search serves as the **final fallback** for all search tools, ensuring maximum coverage even when other engines fail.
+
+#### BaseSearchTool Features
+
+All search tools inherit from `BaseSearchTool` which provides:
+- **Async HTTP requests** with thread pool
+- **Browser User-Agent伪装** to avoid bot detection
+- **Retry decorator** (3 attempts with exponential backoff)
+- **Rate limiting** to prevent request flooding
+- **HTML parsing** with BeautifulSoup
+- **Multi-engine fallback** - automatic failover when primary engine fails
+
+#### Creating a New Search Tool
+
+```python
+from .base_search_tool import BaseSearchTool
+
+class MySearchTool(BaseSearchTool):
+    """Custom search tool with multi-engine support."""
+
+    ENGINES = [
+        {
+            "name": "PrimaryEngine",
+            "url_template": "https://example.com/search?q={query}",
+            "result_selector": ".result-item",
+            "title_selector": "h3 a",
+            "abstract_selector": ".description",
+        },
+        {
+            "name": "BackupEngine",
+            "url_template": "https://backup.com/search?q={query}",
+            "result_selector": ".item",
+            "title_selector": ".title a",
+            "abstract_selector": ".summary",
+        },
+    ]
+
+    @property
+    def name(self) -> str:
+        return "MySearch"
+
+    @property
+    def description(self) -> str:
+        return "搜索我的自定义内容"
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "搜索关键词"},
+                "max_results": {"type": "integer", "default": 5},
+            },
+            "required": ["query"],
+        }
+
+    async def _execute_search(self, query: str, max_results: int, **kwargs) -> list[dict]:
+        """Execute search with engine fallback."""
+        for engine in self.ENGINES:
+            try:
+                results = await self._search_with_engine(query, max_results, engine)
+                if results:
+                    return results
+            except Exception:
+                continue
+        return []
+```
+
+#### Registering Search Tools
+
+Add to `cli.py` `add_workspace_tools()` function:
+
+```python
+from mini_agent.tools.search import MySearchTool
+tools.append(MySearchTool())
+```
+
+### 3.3 Adding MCP Tools
 
 Edit `mcp.json` to add a new MCP Server:
 
@@ -291,7 +383,7 @@ Edit `mcp.json` to add a new MCP Server:
 }
 ```
 
-### 3.3 Customizing Note Storage
+### 3.4 Customizing Note Storage
 
 To replace the storage backend for the `SessionNoteTool`:
 
@@ -333,7 +425,7 @@ class MilvusNoteTool(Tool):
         )
 ```
 
-### 3.4 Initialize Claude Skills (Recommended) 
+### 3.5 Initialize Claude Skills (Recommended) 
 
 This project integrates Claude's official skills repository via git submodule. Initialize it after first clone:
 
@@ -356,7 +448,7 @@ Skills provide 20+ professional capabilities, making the Agent work like a profe
 - [Claude Skills Official Documentation](https://docs.claude.com/zh-CN/docs/agents-and-tools/agent-skills)
 - [Anthropic Blog: Equipping agents for the real world](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
 
-### 3.5 Adding a New Skill
+### 3.6 Adding a New Skill
 
 Create a custom Skill:
 
@@ -396,7 +488,7 @@ A: Answer 1
 
 The new Skill will be automatically loaded and recognized by the Agent.
 
-### 3.6 Customizing System Prompt
+### 3.7 Customizing System Prompt
 
 The system prompt (`system_prompt.md`) defines the Agent's behavior, capabilities, and working guidelines. You can customize it to tailor the Agent for specific use cases.
 
