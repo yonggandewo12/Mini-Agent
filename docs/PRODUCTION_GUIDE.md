@@ -43,7 +43,10 @@ Currently using a single fixed model (MiniMax-M2.5), which will directly report 
 
 Currently directly trusts model output without validation mechanism
 
-- Perform security checks on input parameters for certain tool calls to prevent high-risk actions
+- Perform security checks on input parameters for certain tool calls to prevent high-risk actions ✅ **Implemented**
+  - **Path traversal protection**: FileTools validates all paths are within workspace directory
+  - **Command injection prevention**: BashTool validates commands for dangerous patterns (command substitution, shell special characters, etc.)
+  - **SSRF protection**: Search tools validate URLs before following redirects
 - Perform reflection on results from certain tool calls to check if they are reasonable
 
 ## 3. Production Deployment

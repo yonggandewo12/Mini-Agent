@@ -8,6 +8,16 @@ from typing import Optional
 
 import tiktoken
 
+# Cache tiktoken encoding at module level for performance
+_TIKTOKEN_ENCODING: Optional[tiktoken.Encoding] = None
+
+def _get_tiktoken_encoding() -> tiktoken.Encoding:
+    """Get cached tiktoken encoding, creating it if necessary."""
+    global _TIKTOKEN_ENCODING
+    if _TIKTOKEN_ENCODING is None:
+        _TIKTOKEN_ENCODING = tiktoken.get_encoding("cl100k_base")
+    return _TIKTOKEN_ENCODING
+
 from .llm import LLMClient
 from .logger import AgentLogger
 from .schema import Message
@@ -129,8 +139,8 @@ class Agent:
         Uses cl100k_base encoder (GPT-4/Claude/M2 compatible)
         """
         try:
-            # Use cl100k_base encoder (used by GPT-4 and most modern models)
-            encoding = tiktoken.get_encoding("cl100k_base")
+            # Use cached encoding for better performance
+            encoding = _get_tiktoken_encoding()
         except Exception:
             # Fallback: if tiktoken initialization fails, use simple estimation
             return self._estimate_tokens_fallback()
@@ -525,14 +535,12 @@ Requirements:
                         result = await tool.execute(**arguments)
                     except Exception as e:
                         # Catch all exceptions during tool execution, convert to failed ToolResult
-                        import traceback
-
+                        # Note: Don't expose traceback to LLM as it may contain sensitive info
                         error_detail = f"{type(e).__name__}: {str(e)}"
-                        error_trace = traceback.format_exc()
                         result = ToolResult(
                             success=False,
                             content="",
-                            error=f"Tool execution failed: {error_detail}\n\nTraceback:\n{error_trace}",
+                            error=f"Tool execution failed: {error_detail}",
                         )
 
                 # Log tool execution result

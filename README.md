@@ -324,19 +324,15 @@ pytest tests/test_web_search.py -v
 
 If you encounter `[SSL: CERTIFICATE_VERIFY_FAILED]` error:
 
-**Quick fix for testing** (modify `mini_agent/llm.py`):
-```python
-# Line 50: Add verify=False to AsyncClient
-async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
-```
-
-**Production solution**:
+**Solution**:
 ```bash
 # Update certificates
 pip install --upgrade certifi
 
 # Or configure system proxy/certificates
 ```
+
+**Note**: Do NOT use `verify=False` to bypass SSL verification as it introduces security vulnerabilities. If you must use it for testing, ensure it's only in development environments and never in production.
 
 ### Module Not Found Error
 

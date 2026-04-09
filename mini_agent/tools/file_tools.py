@@ -8,6 +8,17 @@ import tiktoken
 from .base import Tool, ToolResult
 
 
+# Cache tiktoken encoding at module level for performance
+_TIKTOKEN_ENCODING: "tiktoken.Encoding | None" = None
+
+def _get_tiktoken_encoding() -> "tiktoken.Encoding":
+    """Get cached tiktoken encoding, creating it if necessary."""
+    global _TIKTOKEN_ENCODING
+    if _TIKTOKEN_ENCODING is None:
+        _TIKTOKEN_ENCODING = tiktoken.get_encoding("cl100k_base")
+    return _TIKTOKEN_ENCODING
+
+
 def truncate_text_by_tokens(
     text: str,
     max_tokens: int,
@@ -29,7 +40,7 @@ def truncate_text_by_tokens(
         >>> truncated = truncate_text_by_tokens(text, 64000)
         >>> print(truncated)
     """
-    encoding = tiktoken.get_encoding("cl100k_base")
+    encoding = _get_tiktoken_encoding()
     token_count = len(encoding.encode(text))
 
     # Return original text if under limit
@@ -70,6 +81,32 @@ class ReadTool(Tool):
             workspace_dir: Base directory for resolving relative paths
         """
         self.workspace_dir = Path(workspace_dir).absolute()
+
+    def _validate_path(self, file_path: Path) -> ToolResult | None:
+        """Validate that the path is within workspace directory.
+
+        Args:
+            file_path: The path to validate
+
+        Returns:
+            ToolResult with error if path is outside workspace, None if valid
+        """
+        try:
+            resolved = file_path.resolve()
+            workspace_resolved = self.workspace_dir.resolve()
+            if not resolved.is_relative_to(workspace_resolved):
+                return ToolResult(
+                    success=False,
+                    content="",
+                    error=f"Access denied: path '{file_path}' is outside workspace",
+                )
+        except Exception:
+            return ToolResult(
+                success=False,
+                content="",
+                error=f"Invalid path: {file_path}",
+            )
+        return None
 
     @property
     def name(self) -> str:
@@ -112,6 +149,10 @@ class ReadTool(Tool):
             # Resolve relative paths relative to workspace_dir
             if not file_path.is_absolute():
                 file_path = self.workspace_dir / file_path
+
+            # Validate path is within workspace
+            if error := self._validate_path(file_path):
+                return error
 
             if not file_path.exists():
                 return ToolResult(
@@ -163,6 +204,32 @@ class WriteTool(Tool):
         """
         self.workspace_dir = Path(workspace_dir).absolute()
 
+    def _validate_path(self, file_path: Path) -> ToolResult | None:
+        """Validate that the path is within workspace directory.
+
+        Args:
+            file_path: The path to validate
+
+        Returns:
+            ToolResult with error if path is outside workspace, None if valid
+        """
+        try:
+            resolved = file_path.resolve()
+            workspace_resolved = self.workspace_dir.resolve()
+            if not resolved.is_relative_to(workspace_resolved):
+                return ToolResult(
+                    success=False,
+                    content="",
+                    error=f"Access denied: path '{file_path}' is outside workspace",
+                )
+        except Exception:
+            return ToolResult(
+                success=False,
+                content="",
+                error=f"Invalid path: {file_path}",
+            )
+        return None
+
     @property
     def name(self) -> str:
         return "write_file"
@@ -200,6 +267,10 @@ class WriteTool(Tool):
             if not file_path.is_absolute():
                 file_path = self.workspace_dir / file_path
 
+            # Validate path is within workspace
+            if error := self._validate_path(file_path):
+                return error
+
             # Create parent directories if they don't exist
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -219,6 +290,32 @@ class EditTool(Tool):
             workspace_dir: Base directory for resolving relative paths
         """
         self.workspace_dir = Path(workspace_dir).absolute()
+
+    def _validate_path(self, file_path: Path) -> ToolResult | None:
+        """Validate that the path is within workspace directory.
+
+        Args:
+            file_path: The path to validate
+
+        Returns:
+            ToolResult with error if path is outside workspace, None if valid
+        """
+        try:
+            resolved = file_path.resolve()
+            workspace_resolved = self.workspace_dir.resolve()
+            if not resolved.is_relative_to(workspace_resolved):
+                return ToolResult(
+                    success=False,
+                    content="",
+                    error=f"Access denied: path '{file_path}' is outside workspace",
+                )
+        except Exception:
+            return ToolResult(
+                success=False,
+                content="",
+                error=f"Invalid path: {file_path}",
+            )
+        return None
 
     @property
     def name(self) -> str:
@@ -260,6 +357,10 @@ class EditTool(Tool):
             # Resolve relative paths relative to workspace_dir
             if not file_path.is_absolute():
                 file_path = self.workspace_dir / file_path
+
+            # Validate path is within workspace
+            if error := self._validate_path(file_path):
+                return error
 
             if not file_path.exists():
                 return ToolResult(

@@ -2,7 +2,7 @@
 """Test Baidu search functionality"""
 
 import asyncio
-from mini_agent.tools.baidu_search_tool import BaiduSearchTool
+from mini_agent.tools.search.baidu_search_tool import BaiduSearchTool
 
 async def test_search():
     """Test searching for 胡歌 information"""

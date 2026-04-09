@@ -234,6 +234,46 @@ class BashTool(Tool):
         self.shell_name = "PowerShell" if self.is_windows else "bash"
         self.workspace_dir = workspace_dir
 
+    def _validate_command(self, command: str) -> tuple[bool, str]:
+        """Validate command for potentially dangerous patterns.
+
+        Args:
+            command: The command to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not command or not command.strip():
+            return False, "Empty command"
+
+        # Check for dangerous patterns that could enable command injection
+        dangerous_patterns = [
+            (r"\$\([^)]+\)", "command substitution $(...)"),
+            (r"`[^`]+`", "backtick command substitution"),
+            (r";\s*rm\s+", "command chaining with rm"),
+            (r";\s*dd\s+", "command chaining with dd"),
+            (r"\|\s*rm\s+", "pipe to rm"),
+            (r"&\s*rm\s+", "background rm"),
+            (r">\s*/dev/", "redirect to device"),
+            (r"<\s*/dev/", "redirect from device"),
+            (r"/proc/", "access to /proc/"),
+            (r"eval\s+", "eval command"),
+            (r"expect\s+", "expect command"),
+            (r"ssh\s+", "ssh command"),
+            (r"wget\s+", "wget command"),
+            (r"curl\s+.*-o", "curl with output file"),
+            (r"nc\s+", "netcat command"),
+            (r"ncat\s+", "netcat command"),
+            (r"bash\s+-c", "bash -c invocation"),
+            (r"sh\s+-c", "sh -c invocation"),
+        ]
+
+        for pattern, description in dangerous_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                return False, f"Potentially dangerous pattern detected: {description}"
+
+        return True, ""
+
     @property
     def name(self) -> str:
         return "bash"
@@ -329,6 +369,17 @@ Examples:
                 timeout = 600
             elif timeout < 1:
                 timeout = 120
+
+            # Validate command for dangerous patterns
+            is_valid, error_msg = self._validate_command(command)
+            if not is_valid:
+                return BashOutputResult(
+                    success=False,
+                    error=f"Command validation failed: {error_msg}",
+                    stdout="",
+                    stderr=error_msg,
+                    exit_code=-1,
+                )
 
             # Prepare shell-specific command execution
             if self.is_windows:

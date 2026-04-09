@@ -325,19 +325,15 @@ pytest tests/test_web_search.py -v
 
 如果遇到 `[SSL: CERTIFICATE_VERIFY_FAILED]` 错误:
 
-**测试环境快速修复** (修改 `mini_agent/llm.py`):
-```python
-# 第 50 行: 给 AsyncClient 添加 verify=False
-async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
-```
-
-**生产环境解决方案**:
+**解决方案**:
 ```bash
 # 更新证书
 pip install --upgrade certifi
 
 # 或配置系统代理/证书
 ```
+
+**注意**: 请勿使用 `verify=False` 来绕过 SSL 验证，这会带来安全风险。如果必须在测试环境中使用，请确保仅在开发环境中使用，切勿在生产环境中使用。
 
 ### 模块未找到错误
 

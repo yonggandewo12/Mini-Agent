@@ -1,12 +1,34 @@
 """Baidu search tool for Chinese network environment."""
 import asyncio
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import requests
 from bs4 import BeautifulSoup
 
 from .base_search_tool import BaseSearchTool
+
+
+def _is_safe_url(url: str) -> bool:
+    """Validate URL is safe (only http/https, no dangerous schemes).
+
+    Args:
+        url: The URL to validate
+
+    Returns:
+        True if URL is safe, False otherwise
+    """
+    try:
+        parsed = urlparse(url)
+        # Only allow http and https schemes
+        if parsed.scheme not in ("http", "https"):
+            return False
+        # Reject URLs with no netloc (e.g., javascript:, data:, etc.)
+        if not parsed.netloc:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 class BaiduSearchTool(BaseSearchTool):
@@ -71,6 +93,10 @@ class BaiduSearchTool(BaseSearchTool):
                     continue
                 title = title_elem.get_text(strip=True)
                 raw_url = title_elem.get("href", "")
+
+                # Validate URL before including in results
+                if not _is_safe_url(raw_url):
+                    continue
 
                 abstract_elem = item.select_one(".c-abstract, .c-span-last p")
                 abstract = abstract_elem.get_text(strip=True) if abstract_elem else "无摘要"

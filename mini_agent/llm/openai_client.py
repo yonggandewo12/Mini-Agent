@@ -227,8 +227,12 @@ class OpenAIClient(LLMClientBase):
         tool_calls = []
         if message.tool_calls:
             for tool_call in message.tool_calls:
-                # Parse arguments from JSON string
-                arguments = json.loads(tool_call.function.arguments)
+                # Parse arguments from JSON string with error handling
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Failed to parse tool call arguments: {e}")
+                    arguments = {}
 
                 tool_calls.append(
                     ToolCall(
@@ -360,20 +364,21 @@ class OpenAIClient(LLMClientBase):
 
                             # Try to parse arguments; if complete JSON, emit the tool call
                             try:
-                                json.loads(tool_call_buffer["function"]["arguments"])
+                                args_str = tool_call_buffer["function"]["arguments"]
+                                json.loads(args_str)  # Validate first
                                 accumulated_tool_calls.append(
                                     ToolCall(
                                         id=tool_call_buffer["id"],
                                         type="function",
                                         function=FunctionCall(
                                             name=tool_call_buffer["function"]["name"],
-                                            arguments=json.loads(tool_call_buffer["function"]["arguments"]),
+                                            arguments=json.loads(args_str),
                                         ),
                                     )
                                 )
                                 tool_call_buffer = None
                                 final_tool_calls = list(accumulated_tool_calls)
-                            except json.JSONDecodeError:
+                            except (json.JSONDecodeError, TypeError):
                                 pass
 
                 if hasattr(chunk.choices[0], "finish_reason") and chunk.choices[0].finish_reason:
